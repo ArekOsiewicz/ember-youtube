@@ -245,7 +245,7 @@ export default Ember.Component.extend({
 		}
 		if (ytlistid) {
 			let options = Ember.getProperties(this, ['startSeconds', 'endSeconds', 'suggestedQuality']);
-			options.playlist = ytlistid;
+			options.list = ytlistid;
 			// Either load or cue depending on `autoplay`.
 			if (this.playerVars.autoplay) {
 				player.loadPlaylist(options);
