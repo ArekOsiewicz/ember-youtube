@@ -2,11 +2,20 @@
 
 import Ember from 'ember';
 
-const {computed, debug, observer, on, run, RSVP, $} = Ember;
+const {
+	computed,
+	debug,
+	observer,
+	on,
+	run,
+	RSVP,
+	$
+} = Ember;
 
 export default Ember.Component.extend({
 	classNames: ['EmberYoutube'],
 	ytid: null,
+	ytlistid: null,
 	width: 560,
 	height: 315,
 
@@ -30,16 +39,16 @@ export default Ember.Component.extend({
 
 	// from YT.PlayerState
 	stateNames: {
-		'-1': 'ready',		// READY
-		0: 'ended', 		// YT.Player.ENDED
-		1: 'playing', 		// YT.PlayerState.PLAYING
-		2: 'paused', 		// YT.PlayerState.PAUSED
-		3: 'buffering', 	// YT.PlayerState.BUFFERING
-		5: 'queued'			// YT.PlayerState.CUED
+		'-1': 'ready', // READY
+		0: 'ended', // YT.Player.ENDED
+		1: 'playing', // YT.PlayerState.PLAYING
+		2: 'paused', // YT.PlayerState.PAUSED
+		3: 'buffering', // YT.PlayerState.BUFFERING
+		5: 'queued' // YT.PlayerState.CUED
 	},
 
 	// Expose the component to the outside world.
-	_register: on('init', function () {
+	_register: on('init', function() {
 		const delegate = this.get('delegate');
 		const delegateAs = this.get('delegate-as');
 		run.schedule('afterRender', () => {
@@ -52,7 +61,7 @@ export default Ember.Component.extend({
 
 	didInsertElement() {
 		this._super(...arguments);
-		if (!this.get('lazyload') && this.get('ytid')) {
+		if (!this.get('lazyload') && (this.get('ytid') || this.get('ytlistid'))) {
 			// If "lazyload" is not enabled and we have an ID, we can start immediately.
 			// Otherwise the `loadVideo` observer will take care of things.
 			this.loadAndCreatePlayer().then(() => {
@@ -72,19 +81,19 @@ export default Ember.Component.extend({
 		const promise = new RSVP.Promise((resolve, reject) => {
 			this.loadYouTubeApi().then(() => {
 				this.createPlayer().then(player => {
-					this.setProperties({
-						player,
-						playerState: 'ready'
+						this.setProperties({
+							player,
+							playerState: 'ready'
+						});
+						this.set('loadAndCreatePlayerIsRunning', false);
+						resolve();
+					})
+					.catch(err => {
+						if (this.get('showDebug')) {
+							Ember.debug(err);
+						}
+						reject(err);
 					});
-					this.set('loadAndCreatePlayerIsRunning', false);
-					resolve();
-				})
-				.catch(err => {
-					if (this.get('showDebug')) {
-						Ember.debug(err);
-					}
-					reject(err);
-				});
 			});
 		});
 		// The `wait` helper waits for this run loop,
@@ -200,11 +209,12 @@ export default Ember.Component.extend({
 	}),
 
 	// Load (and plays) a video every time ytid changes.
-	ytidDidChange: observer('ytid', function () {
+	ytidDidChange: observer('ytid', 'ytlistid', function() {
 		const player = this.get('player');
 		const ytid = this.get('ytid');
+		const ytlistid = this.get('ytlistid');
 
-		if (!ytid) {
+		if (!ytid && !ytlistid) {
 			return;
 		}
 
@@ -220,15 +230,28 @@ export default Ember.Component.extend({
 	loadVideo() {
 		const player = this.get('player');
 		const ytid = this.get('ytid');
+		const ytlistid = this.get('ytlistid');
 
-		// Set parameters for the video to be played.
-		let options = Ember.getProperties(this, ['startSeconds', 'endSeconds', 'suggestedQuality']);
-		options.videoId = ytid;
-		// Either load or cue depending on `autoplay`.
-		if (this.playerVars.autoplay) {
-			player.loadVideoById(options);
-		} else {
-			player.cueVideoById(options);
+		if (ytid) {
+			// Set parameters for the video to be played.
+			let options = Ember.getProperties(this, ['startSeconds', 'endSeconds', 'suggestedQuality']);
+			options.videoId = ytid;
+			// Either load or cue depending on `autoplay`.
+			if (this.playerVars.autoplay) {
+				player.loadVideoById(options);
+			} else {
+				player.cueVideoById(options);
+			}
+		}
+		if (ytlistid) {
+			let options = Ember.getProperties(this, ['startSeconds', 'endSeconds', 'suggestedQuality']);
+			options.playlist = ytlistid;
+			// Either load or cue depending on `autoplay`.
+			if (this.playerVars.autoplay) {
+				player.loadPlaylist(options);
+			} else {
+				player.cuePlaylist(options);
+			}
 		}
 	},
 
@@ -302,9 +325,9 @@ export default Ember.Component.extend({
 
 	// OK, this is stupid but couldn't access the "event" inside
 	// an ember action so here's a manual click handler instead.
-	progressBarClick: on('didInsertElement', function () {
+	progressBarClick: on('didInsertElement', function() {
 		let self = this;
-		this.$().on('click', 'progress', function (event) {
+		this.$().on('click', 'progress', function(event) {
 			// get the x position of the click inside our progress el
 			let x = event.pageX - Ember.$(this).position().left;
 			// convert it to a value relative to the duration (max)
