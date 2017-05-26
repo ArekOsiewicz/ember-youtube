@@ -147,6 +147,7 @@ export default Ember.Component.extend({
 				playerVars,
 				events: {
 					onReady() {
+						this.sendAction("ytReady");
 						resolve(player);
 					},
 					onStateChange: this.onPlayerStateChange.bind(this),
