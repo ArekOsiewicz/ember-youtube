@@ -85,6 +85,7 @@ export default Ember.Component.extend({
 							player,
 							playerState: 'ready'
 						});
+						this.sendAction("ytReady");
 						this.set('loadAndCreatePlayerIsRunning', false);
 						resolve();
 					})
@@ -148,7 +149,6 @@ export default Ember.Component.extend({
 				playerVars,
 				events: {
 					onReady() {
-						self.sendAction("ytReady");
 						resolve(player);
 					},
 					onStateChange: this.onPlayerStateChange.bind(this),
