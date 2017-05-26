@@ -134,6 +134,7 @@ export default Ember.Component.extend({
 		const playerVars = this.get('playerVars');
 		const width = this.get('width');
 		const height = this.get('height');
+		var self = this;
 		// const iframe = this.element.querySelector('#EmberYoutube-player');
 		const iframe = this.$('#EmberYoutube-player');
 		let player;
@@ -147,7 +148,7 @@ export default Ember.Component.extend({
 				playerVars,
 				events: {
 					onReady() {
-						this.sendAction("ytReady");
+						self.sendAction("ytReady");
 						resolve(player);
 					},
 					onStateChange: this.onPlayerStateChange.bind(this),
